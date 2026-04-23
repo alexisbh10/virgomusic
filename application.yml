@@ -1,0 +1,24 @@
+server:
+  port: 2333
+  address: 0.0.0.0
+
+lavalink:
+  server:
+    password: ${LAVALINK_PASSWORD}
+    sources:
+      youtube: true
+      soundcloud: true
+      twitch: false
+      vimeo: false
+      http: true
+
+plugins:
+  lavasrc:
+    sources:
+      spotify: true   
+      applemusic: false
+      deezer: false
+    spotify:
+      clientId: ${SPOTIFY_CLIENT_ID}
+      clientSecret: ${SPOTIFY_CLIENT_SECRET}
+      countryCode: "ES"
