@@ -22,14 +22,13 @@ const commands = [
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
-const GUILD_ID = 'TU_GUILD_ID'; // Reemplaza con tu ID de servidor
-const CLIENT_ID = 'TU_CLIENT_ID'; // Reemplaza con tu ID de aplicación
+const CLIENT_ID = '1496947209529463035'; 
 
 (async () => {
     try {
         console.log('Iniciando despliegue de comandos de barra...');
         await rest.put(
-            Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
+            Routes.applicationCommands(CLIENT_ID),
             { body: commands },
         );
         console.log('Comandos de barra desplegados exitosamente.');
