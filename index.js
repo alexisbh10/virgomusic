@@ -19,7 +19,12 @@ const nodes = [
     } // Puedes agregar más nodos aquí si lo deseas
 ];
 
-const shoukaku = new Shoukaku(new Connectors.DiscordJS(client), nodes);
+const shoukaku = new Shoukaku(new Connectors.DiscordJS(client), nodes, {
+    moveOnDisconnect: false,
+    resume: true,
+    reconnectTries: 10,
+    reconnectInterval: 10000, // Lo intenta cada 10 segundos
+});
 
 const queues = new Map();
 
