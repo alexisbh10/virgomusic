@@ -100,7 +100,7 @@ client.on('interactionCreate', async (interaction) => {
                 const serverQueue = queues.get(interaction.guildId);
                 const firstTrack = serverQueue.tracks.shift();
 
-                await player.playTrack({ track: firstTrack.encoded });
+                await player.playTrack({ track: { encoded: firstTrack.encoded } });
                 interaction.editReply(`Reproduciendo: **${firstTrack.info.title}**`);
 
                 // Manejo de eventos del player...
@@ -109,7 +109,7 @@ client.on('interactionCreate', async (interaction) => {
                         const q = queues.get(interaction.guildId);
                         if (q && q.tracks.length > 0) {
                             const nextTrack = q.tracks.shift();
-                            await player.playTrack({ track: nextTrack.encoded });
+                            await player.playTrack({ track: { encoded: nextTrack.encoded } });
                             q.textChannel.send(`Reproduciendo: **${nextTrack.info.title}**`);
                         } else {
                             shoukaku.leaveVoiceChannel(interaction.guildId);

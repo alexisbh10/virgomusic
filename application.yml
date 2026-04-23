@@ -3,16 +3,29 @@ server:
   address: 0.0.0.0
 
 lavalink:
+  plugins:
+    # Esta línea le dice a Lavalink que descargue el plugin anti-bloqueos de YouTube
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.11.4"
   server:
     password: ${LAVALINK_PASSWORD}
     sources:
-      youtube: true
+      youtube: false # ¡APAGAMOS EL YOUTUBE VIEJO Y ROTO!
       soundcloud: true
       twitch: false
       vimeo: false
       http: true
 
 plugins:
+  youtube:
+    enabled: true
+    allowSearch: true
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+    clients:
+      - MUSIC
+      - ANDROID_VR
+      - WEB
+      - WEBEMBEDDED
   lavasrc:
     sources:
       spotify: true   
