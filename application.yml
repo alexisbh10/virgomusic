@@ -5,7 +5,7 @@ server:
 lavalink:
   plugins:
     # Esta línea le dice a Lavalink que descargue el plugin anti-bloqueos de YouTube
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.11.4"
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.0"
   server:
     password: ${LAVALINK_PASSWORD}
     sources:
@@ -22,10 +22,10 @@ plugins:
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
     clients:
-      - MUSIC
-      - TVHTML5EMBEDDED
-      - WEB
-      - WEBEMBEDDED
+    - WEB
+    - M_WEB
+    - WEBEMBEDDED
+    - TVHTML5EMBEDDED
   lavasrc:
     sources:
       spotify: true   
