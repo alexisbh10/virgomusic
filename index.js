@@ -14,7 +14,7 @@ const client = new Client({
 const nodes = [
     {
         name: 'Main Lavalink Node',
-        url: '127.0.0.1:2333', // Reemplaza con la URL de tu nodo Lavalink
+        url: '0.0.0.0:2333', // Reemplaza con la URL de tu nodo Lavalink
         auth: process.env.LAVALINK_PASSWORD, // Reemplaza con la contraseña de tu nodo Lavalink
     } // Puedes agregar más nodos aquí si lo deseas
 ];
