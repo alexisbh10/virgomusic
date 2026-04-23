@@ -11,28 +11,35 @@ const client = new Client({
     ]
 });
 
-const nodes = [
-    {
-        name: 'Main Lavalink Node',
-        url: 'localhost:2333', // Reemplaza con la URL de tu nodo Lavalink
-        auth: process.env.LAVALINK_PASSWORD, // Reemplaza con la contraseña de tu nodo Lavalink
-    } // Puedes agregar más nodos aquí si lo deseas
-];
+// 1. Dejamos la lista de nodos VACÍA para que el bot no intente conectar al encenderse
+const nodes = []; 
 
 const shoukaku = new Shoukaku(new Connectors.DiscordJS(client), nodes, {
     moveOnDisconnect: false,
     resume: true,
-    reconnectTries: 40, 
-    reconnectInterval: 5, 
+    reconnectTries: 10,
+    reconnectInterval: 5,
 });
 
 const queues = new Map();
 
 shoukaku.on('error', (_, error) => console.error('Error en Lavalink:', error));
-shoukaku.on('ready', (name) => console.log(`Nodo Lavalink ${name} está listo.`));
+shoukaku.on('ready', (name) => console.log(`✅ ¡POR FIN! Nodo Lavalink ${name} está listo.`));
 
+// 2. El bot se conecta a Discord al instante
 client.on('ready', () => {
-    console.log(`Bot conectado como ${client.user.tag}`);
+    console.log(`Bot conectado a Discord como ${client.user.tag}`);
+    console.log(`⏳ Iniciando cuenta atrás de 100 segundos para no agobiar a Lavalink...`);
+    
+    // 3. Le ponemos una alarma para que conecte a la música cuando Lavalink ya esté 100% despierto
+    setTimeout(() => {
+        console.log(`🔌 Conectando a Lavalink ahora...`);
+        shoukaku.addNode({
+            name: 'Main Lavalink Node',
+            url: '127.0.0.1:2333', // Usamos 127.0.0.1 para evitar el error rojo de IPv6
+            auth: process.env.LAVALINK_PASSWORD || 'youshallnotpass',
+        });
+    }, 100000); 
 });
 
 client.on('interactionCreate', async (interaction) => {
