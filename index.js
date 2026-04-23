@@ -14,7 +14,7 @@ const client = new Client({
 const nodes = [
     {
         name: 'Main Lavalink Node',
-        url: '0.0.0.0:2333', // Reemplaza con la URL de tu nodo Lavalink
+        url: 'localhost:2333', // Reemplaza con la URL de tu nodo Lavalink
         auth: process.env.LAVALINK_PASSWORD, // Reemplaza con la contraseña de tu nodo Lavalink
     } // Puedes agregar más nodos aquí si lo deseas
 ];
@@ -53,7 +53,8 @@ client.on('interactionCreate', async (interaction) => {
 
         const node = shoukaku.getIdealNode();
         if (!node) {
-            return interaction.editReply('No hay nodos de Lavalink disponibles.');
+            // El bot responde esto si Lavalink aún está cargando sus plugins
+            return interaction.editReply('⏳ El servidor de música se está encendiendo (tarda aprox. 1 minuto). ¡Por favor, inténtalo de nuevo en unos segundos!');
         }
 
         // Si YouTube falla por IP en Render, intenta cambiar 'ytsearch:' por 'scsearch:' (SoundCloud)
