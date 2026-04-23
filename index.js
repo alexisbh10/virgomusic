@@ -22,8 +22,8 @@ const nodes = [
 const shoukaku = new Shoukaku(new Connectors.DiscordJS(client), nodes, {
     moveOnDisconnect: false,
     resume: true,
-    reconnectTries: 10,
-    reconnectInterval: 10000, // Lo intenta cada 10 segundos
+    reconnectTries: 40, 
+    reconnectInterval: 5, 
 });
 
 const queues = new Map();
