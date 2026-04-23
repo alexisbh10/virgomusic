@@ -103,19 +103,40 @@ client.on('interactionCreate', async (interaction) => {
                 await player.playTrack({ track: { encoded: firstTrack.encoded } });
                 interaction.editReply(`Reproduciendo: **${firstTrack.info.title}**`);
 
-                // Manejo de eventos del player...
+                // Manejo de eventos del player (El piloto automático)
                 player.on('end', async (data) => {
-                    if (['REPLACED', 'STOPPED', 'FINISHED'].includes(data.reason)) {
+                    // Chivato en la consola para saber exactamente por qué paró
+                    console.log('🎵 Canción terminada. Motivo:', data.reason); 
+                    
+                    // Pasamos a mayúsculas por si Lavalink v4 lo envía en minúsculas ('finished')
+                    const reason = data.reason ? data.reason.toUpperCase() : '';
+
+                    // Si terminó de forma natural (FINISHED) o si alguien usó /skip (STOPPED)
+                    if (['STOPPED', 'FINISHED'].includes(reason)) {
                         const q = queues.get(interaction.guildId);
+                        
                         if (q && q.tracks.length > 0) {
-                            const nextTrack = q.tracks.shift();
-                            await player.playTrack({ track: { encoded: nextTrack.encoded } });
-                            q.textChannel.send(`Reproduciendo: **${nextTrack.info.title}**`);
+                            const nextTrack = q.tracks.shift(); // Saca la siguiente de la lista
+                            
+                            try {
+                                // ¡EL MISMO TRUCO DEL FORMATO DE ANTES!
+                                await player.playTrack({ track: { encoded: nextTrack.encoded } });
+                                q.textChannel.send(`🎶 Reproduciendo ahora: **${nextTrack.info.title}**`);
+                            } catch (err) {
+                                console.error('❌ Error al intentar poner la siguiente canción:', err);
+                            }
                         } else {
-                            shoukaku.leaveVoiceChannel(interaction.guildId);
+                            // Si la lista está vacía, el bot se despide y se va
+                            console.log('⏹️ Cola vacía, desconectando del canal...');
+                            await shoukaku.leaveVoiceChannel(interaction.guildId);
                             queues.delete(interaction.guildId);
                         }
                     }
+                });
+
+                // Chivato por si el reproductor interno crashea
+                player.on('error', (error) => {
+                    console.error('❌ Error interno del reproductor:', error);
                 });
             } else {
                 const serverQueue = queues.get(interaction.guildId);
