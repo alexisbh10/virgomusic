@@ -9,7 +9,7 @@ const express = require('express');
 process.env.DP_FFMPEG_EXE = ffmpeg;
 
 const app = express();
-app.get('/', (req, res) => res.send('🚀 VirgoMusic V1.0.7 Online.'));
+app.get('/', (req, res) => res.send('🚀 VirgoMusic V1.0.8 - Railway Active'));
 app.listen(process.env.PORT || 3000);
 
 const client = new Client({
@@ -17,86 +17,44 @@ const client = new Client({
 });
 
 const player = new Player(client, { 
-    skipNativeLibInstall: true,
-    connectionTimeout: 60000 // Aumentamos el tiempo de espera de conexión
+    skipNativeLibInstall: true // Railway usa Nixpacks y esto evita conflictos de librerías
 });
 
-// Captura de errores para que el bot no muera nunca
-process.on('unhandledRejection', error => console.error('⚠️ Error inesperado:', error));
-
 client.on('ready', async () => {
-    console.log(`✅ ${client.user.tag} listo.`);
+    console.log(`✅ ${client.user.tag} online en Railway.`);
+    // Cargamos extractores (Spotify/SoundCloud/Apple)
     await player.extractors.loadMulti(DefaultExtractors.filter(e => e.name !== 'YouTubeExtractor'));
 });
 
-// 2. UNIFICADO: Comandos y Botones en un solo sitio
+// MANEJADOR DE COMANDOS (Optimizado para Railway)
 client.on('interactionCreate', async (interaction) => {
-    
-    // FILTRO ANTI-DUPLICADOS: Si ya respondimos, ignoramos el reintento de Discord
-    if (interaction.deferred || interaction.replied) return;
+    if (!interaction.isChatInputCommand() || interaction.replied) return;
 
-    if (interaction.isChatInputCommand()) {
-        try {
-            await interaction.deferReply();
-        } catch (e) { return; } // Si falla el defer por lag (10062), salimos
+    await interaction.deferReply().catch(() => {});
 
-        const channel = interaction.member.voice.channel;
-        if (!channel) return interaction.editReply('❌ ¡Entra a un canal de voz!');
+    const channel = interaction.member.voice.channel;
+    if (!channel) return interaction.editReply('❌ ¡Entra a un canal de voz!');
 
+    if (interaction.commandName === 'play') {
         const query = interaction.options.getString('cancion');
-        const queue = player.nodes.get(interaction.guildId);
-
         try {
-            if (interaction.commandName === 'play') {
-                const { track } = await player.play(channel, query, {
-                    nodeOptions: {
-                        metadata: { textChannel: interaction.channel },
-                        selfDeaf: true,
-                        leaveOnEnd: true,
-                        bufferingTimeout: 15000,
-                        connectionTimeout: 60000,
-                        // Fix para el "entra y se va": forzamos el stream para que no espere
-                        noRawStream: false 
-                    }
-                });
-                return interaction.editReply(`🎶 Añadida: **${track.title}**`);
-            }
-
-            if (interaction.commandName === 'skip' && queue?.isPlaying()) {
-                queue.node.skip();
-                return interaction.editReply('⏭️ Saltada.');
-            }
-
-            if (interaction.commandName === 'stop' && queue) {
-                queue.delete();
-                return interaction.editReply('⏹️ Detenido.');
-            }
-
-            if (interaction.commandName === 'queue' && queue) {
-                const list = queue.tracks.toArray().map((t, i) => `${i+1}. ${t.title}`).slice(0, 5).join('\n');
-                return interaction.editReply(`🎶 **Cola:**\n${list || 'Vacía'}`);
-            }
-
+            const { track } = await player.play(channel, query, {
+                nodeOptions: {
+                    metadata: { textChannel: interaction.channel },
+                    selfDeaf: true,
+                    bufferingTimeout: 15000,
+                    connectionTimeout: 60000 
+                }
+            });
+            return interaction.editReply(`🎶 Añadida: **${track.title}**`);
         } catch (e) {
-            console.error("Error en ejecución:", e);
-            return interaction.editReply(`❌ Error de conexión. Prueba de nuevo en unos segundos.`);
+            return interaction.editReply(`❌ Error de audio. Railway intentó procesarlo pero falló.`);
         }
     }
-
-    // MANEJO DE BOTONES (Integrado)
-    if (interaction.isButton()) {
-        const q = player.nodes.get(interaction.guildId);
-        if (!q) return;
-        try {
-            await interaction.deferUpdate();
-            if (interaction.custom_id === 'btn_pause') q.node.setPaused(!q.node.isPaused());
-            if (interaction.custom_id === 'btn_skip') q.node.skip();
-            if (interaction.custom_id === 'btn_stop') q.delete();
-        } catch (e) { }
-    }
+    // (Añade aquí tus comandos de skip/stop si los necesitas)
 });
 
-// 3. INTERFAZ Y EVENTOS
+// INTERFAZ VISUAL
 player.events.on('playerStart', (queue, track) => {
     const embed = new EmbedBuilder()
         .setColor('#2b2d31')
@@ -105,20 +63,11 @@ player.events.on('playerStart', (queue, track) => {
         .setThumbnail(track.thumbnail);
 
     const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('btn_pause').setLabel('⏸️').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('btn_skip').setLabel('⏭️').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('btn_stop').setLabel('⏹️').setStyle(ButtonStyle.Danger)
+        new ButtonBuilder().setCustomId('btn_skip').setLabel('⏭️ Skip').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('btn_stop').setLabel('⏹️ Stop').setStyle(ButtonStyle.Danger)
     );
 
     queue.metadata.textChannel.send({ embeds: [embed], components: [row] });
-});
-
-// LOGS DETALLADOS PARA RENDER
-player.events.on('error', (q, e) => console.log(`[SISTEMA] ${e.message}`));
-player.events.on('playerError', (q, e) => {
-    console.log(`[AUDIO] Fallo al procesar stream: ${e.message}`);
-    q.metadata.textChannel.send("⚠️ El stream de audio se cortó. Intentando saltar a la siguiente...");
-    q.node.skip();
 });
 
 client.login(process.env.DISCORD_TOKEN);
