@@ -1,9 +1,6 @@
 #!/bin/bash
-# 1. Registrar comandos y cerrar
+# 1. Registrar comandos de barra
 node deploy.js
 
-# 2. Iniciar Lavalink con un LÍMITE DE RAM (256 MB máximo)
-java -Xmx256m -jar Lavalink.jar &
-
-# 3. Iniciar el bot INMEDIATAMENTE
+# 2. Iniciar el bot de Node.js
 node index.js
