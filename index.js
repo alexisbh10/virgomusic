@@ -46,7 +46,7 @@ player.events.on('debug', (queue, message) => {
 
 client.on('clientReady', async () => {
     console.log(`✅ ${client.user.tag} online en Railway (V1.0).`);
-    await player.extractors.loadDefault();
+    await player.extractors.loadMulti(DefaultExtractors);
 });
 
 // 2. MANEJADOR DE COMANDOS Y BOTONES
