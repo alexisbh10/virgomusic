@@ -28,7 +28,7 @@ player.events.on('playerError', (queue, error) => {
     console.log(`❌ [Error de Reproducción]: ${error.message}`);
 });
 
-client.on('ready', async () => {
+client.on('clientReady', async () => {
     console.log(`✅ ${client.user.tag} online en Railway (V1.0).`);
     await player.extractors.loadMulti(DefaultExtractors.filter(e => e.name !== 'YouTubeExtractor'));
 });
