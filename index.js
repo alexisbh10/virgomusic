@@ -26,11 +26,22 @@ const client = new Client({
 const player = new Player(client);
 
 // --- CHIVATOS DE ERRORES DE AUDIO ---
+// --- CHIVATOS DE DIAGNÓSTICO PROFUNDO ---
 player.events.on('error', (queue, error) => {
-    console.log(`❌ [Error de Cola]: ${error.message}`);
+    console.log(`❌ [Error de Cola]:`, error);
 });
+
 player.events.on('playerError', (queue, error) => {
-    console.log(`❌ [Error de Reproducción]: ${error.message}`);
+    console.log(`❌ [Error de Reproducción]:`, error);
+});
+
+// Esto nos dirá qué está haciendo el motor de red interno paso a paso
+player.on('debug', (message) => {
+    console.log(`🔍 [Player Debug]: ${message}`);
+});
+
+player.events.on('debug', (queue, message) => {
+    console.log(`📡 [Voice Connection]: ${message}`);
 });
 
 client.on('clientReady', async () => {
