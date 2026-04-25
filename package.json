@@ -20,13 +20,17 @@
   },
   "homepage": "https://github.com/alexisbh10/virgomusic#readme",
   "dependencies": {
+    "@discord-player/extractor": "latest",
+    "@discordjs/opus": "^0.9.0",
+    "discord-player": "latest",
     "discord.js": "^14.14.1",
-    "discord-player": "^6.6.6",
-    "@discord-player/extractor": "^4.4.7",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
     "ffmpeg-static": "^5.2.0",
-    "opusscript": "^0.0.9",
     "libsodium-wrappers": "^0.7.13",
-    "express": "^4.18.2",
-    "dotenv": "^16.4.5"
-}
+    "tweetnacl": "^1.0.3"
+  },
+  "overrides": {
+    "opusscript": "0.0.8"
+  }
 }
