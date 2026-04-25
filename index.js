@@ -1,5 +1,11 @@
 require('dotenv').config();
-// INYECCIÓN CRÍTICA: Forzar Node.js a usar IPv4 para que Discord no rechace el audio silenciosamente.
+
+// 1. MOTOR DE AUDIO (Forzamos la ruta exacta para que discord-player no se pierda)
+const ffmpegPath = require('ffmpeg-static');
+process.env.FFMPEG_PATH = ffmpegPath;
+process.env.DP_FFMPEG_EXE = ffmpegPath;
+
+// 2. REGLA DE RED CRÍTICA (Evita que Discord rechace el audio en silencio)
 const dns = require('node:dns');
 dns.setDefaultResultOrder('ipv4first');
 
