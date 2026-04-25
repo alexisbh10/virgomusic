@@ -91,8 +91,12 @@ client.on('interactionCreate', async (interaction) => {
                         metadata: { textChannel: interaction.channel },
                         selfDeaf: true,
                         bufferingTimeout: 15000,
-                        connectionTimeout: 60000 
-                    }
+                        connectionTimeout: 60000,
+                        leaveOnEnd: false, // 👈 Evita que huya al terminar la canción
+                        leaveOnEmpty: false, // 👈 Evita que huya si la cola está vacía
+                        volume: 80 // 👈 Al no ser 100, FUERZA a usar FFmpeg para bajar el volumen
+                    },
+                    searchEngine: 'soundcloud'
                 });
                 return interaction.editReply(`🎶 Añadida a la cola: **${track.title}**`);
             } catch (e) {
