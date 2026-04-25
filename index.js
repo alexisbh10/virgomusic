@@ -46,7 +46,7 @@ player.events.on('debug', (queue, message) => {
 
 client.on('clientReady', async () => {
     console.log(`✅ ${client.user.tag} online en Railway (V1.0).`);
-    await player.extractors.loadMulti(DefaultExtractors.filter(e => e.name !== 'YouTubeExtractor'));
+    await player.extractors.loadDefault();
 });
 
 // 2. MANEJADOR DE COMANDOS Y BOTONES
@@ -92,11 +92,10 @@ client.on('interactionCreate', async (interaction) => {
                         selfDeaf: true,
                         bufferingTimeout: 15000,
                         connectionTimeout: 60000,
-                        leaveOnEnd: false, // 👈 Evita que huya al terminar la canción
-                        leaveOnEmpty: false, // 👈 Evita que huya si la cola está vacía
-                        volume: 80 // 👈 Al no ser 100, FUERZA a usar FFmpeg para bajar el volumen
-                    },
-                    searchEngine: 'soundcloud'
+                        leaveOnEnd: false,
+                        leaveOnEmpty: false,
+                        volume: 80 
+                    }
                 });
                 return interaction.editReply(`🎶 Añadida a la cola: **${track.title}**`);
             } catch (e) {
