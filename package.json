@@ -29,7 +29,7 @@
     "ffmpeg-static": "^5.2.0",
     "libsodium-wrappers": "^0.7.13",
     "tweetnacl": "^1.0.3",
-    "@snazzah/davey": "^0.2.1"
+    "@snazzah/davey": "^0.1.10"
   },
   "overrides": {
     "opusscript": "0.0.8"
