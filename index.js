@@ -1,11 +1,11 @@
 require('dotenv').config();
 
-// 1. MOTOR DE AUDIO (Forzamos la ruta exacta para que discord-player no se pierda)
-const ffmpegPath = require('ffmpeg-static');
-process.env.FFMPEG_PATH = ffmpegPath;
-process.env.DP_FFMPEG_EXE = ffmpegPath;
+// 1. MOTOR DE AUDIO (Solución nativa para Linux en Railway)
+const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
+process.env.FFMPEG_PATH = ffmpegInstaller.path;
+process.env.DP_FFMPEG_EXE = ffmpegInstaller.path;
 
-// 2. REGLA DE RED CRÍTICA (Evita que Discord rechace el audio en silencio)
+// 2. REGLA DE RED CRÍTICA
 const dns = require('node:dns');
 dns.setDefaultResultOrder('ipv4first');
 
