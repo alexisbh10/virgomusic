@@ -1,12 +1,12 @@
 require('dotenv').config();
+// INYECCIÓN CRÍTICA: Forzar Node.js a usar IPv4 para que Discord no rechace el audio silenciosamente.
+const dns = require('node:dns');
+dns.setDefaultResultOrder('ipv4first');
+
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { Player } = require('discord-player');
 const { DefaultExtractors } = require('@discord-player/extractor');
-const ffmpeg = require('ffmpeg-static');
 const express = require('express');
-
-// 1. MOTOR DE AUDIO Y SERVIDOR WEB (Para Railway)
-process.env.DP_FFMPEG_EXE = ffmpeg;
 
 const app = express();
 app.get('/', (req, res) => res.send('🚀 VirgoMusic V1.0 - Railway Active'));
@@ -16,9 +16,8 @@ const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
 });
 
-const player = new Player(client, { 
-    skipNativeLibInstall: true 
-});
+// Al quitar skipNativeLibInstall, permitimos que Railway use sus propias herramientas nativas de Linux
+const player = new Player(client);
 
 // --- CHIVATOS DE ERRORES DE AUDIO ---
 player.events.on('error', (queue, error) => {
