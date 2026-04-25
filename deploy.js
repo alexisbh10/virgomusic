@@ -1,9 +1,6 @@
 require('dotenv').config();
 const { REST, Routes, SlashCommandBuilder } = require('discord.js');
 
-const { generateDependencyReport } = require('discord-voip');
-console.log(generateDependencyReport());
-
 const commands = [
     new SlashCommandBuilder().setName('play').setDescription('Reproduce una canción en tu canal de voz').addStringOption(option => option.setName('cancion').setDescription('El nombre o URL de la canción').setRequired(true)),
     new SlashCommandBuilder().setName('stop').setDescription('Detiene la reproducción y vacía la cola'),    
