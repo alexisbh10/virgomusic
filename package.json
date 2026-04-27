@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
@@ -20,18 +19,8 @@
   },
   "homepage": "https://github.com/alexisbh10/virgomusic#readme",
   "dependencies": {
-    "@discord-player/extractor": "latest",
-    "@discordjs/opus": "^0.9.0",
-    "discord-player": "latest",
-    "discord.js": "^14.14.1",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "libsodium-wrappers": "^0.7.13",
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",    
-    "tweetnacl": "^1.0.3",
-    "@snazzah/davey": "^0.1.10"
-  },
-  "overrides": {
-    "opusscript": "0.0.8"
+    "discord.js": "^14.26.3",
+    "dotenv": "^17.4.2",
+    "shoukaku": "^4.3.0"
   }
 }
