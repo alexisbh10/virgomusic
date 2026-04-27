@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const { Shoukaku, Connectors } = require('shoukaku');
 
 const client = new Client({
@@ -11,9 +11,8 @@ const client = new Client({
     ]
 });
 
-// 1. Dejamos la lista de nodos VACÍA para que el bot no intente conectar al encenderse
+// Configuración de Shoukaku
 const nodes = []; 
-
 const shoukaku = new Shoukaku(new Connectors.DiscordJS(client), nodes, {
     moveOnDisconnect: false,
     resume: true,
@@ -23,66 +22,82 @@ const shoukaku = new Shoukaku(new Connectors.DiscordJS(client), nodes, {
 
 const queues = new Map();
 
+// --- FUNCIÓN DE EMBEDS PERSONALIZADOS ---
+function createEmbed({ title, description, color = '#2b2d31', thumbnail = null }) {
+    const embed = new EmbedBuilder()
+        .setColor(color) // Color elegante por defecto (Dark Mode Discord)
+        .setTitle(title)
+        .setDescription(description)
+        .setTimestamp()
+        .setFooter({ text: 'Bot de Música Premium 🎧' });
+    
+    if (thumbnail) embed.setThumbnail(thumbnail);
+    return embed;
+}
+
+// --- FUNCIÓN DE BÚSQUEDA MULTI-PLATAFORMA ACTUALIZADA ---
+async function smartSearch(node, query) {
+    // Si es una URL directa, que Shoukaku la resuelva tal cual
+    if (query.match(/^https?:\/\//)) {
+        return await node.rest.resolve(query);
+    }
+
+    // Orden de prioridad: Spotify -> Apple Music -> YouTube -> SoundCloud
+    // Añadimos 'amsearch:' para Apple Music
+    const searchPrefixes = ['spsearch:', 'amsearch:', 'ytsearch:', 'scsearch:'];
+    
+    for (const prefix of searchPrefixes) {
+        const result = await node.rest.resolve(`${prefix}${query}`);
+        if (result && !['empty', 'error'].includes(result.loadType)) {
+            return result; // Devuelve el primer resultado exitoso
+        }
+    }
+    return null; // Si todo falla en todas las plataformas
+}
+
 shoukaku.on('error', (_, error) => console.error('Error en Lavalink:', error));
 shoukaku.on('ready', (name) => console.log(`✅ ¡POR FIN! Nodo Lavalink ${name} está listo.`));
 
-// 2. El bot se conecta a Discord al instante
 client.on('ready', () => {
     console.log(`Bot conectado a Discord como ${client.user.tag}`);
-    console.log(`⏳ Iniciando cuenta atrás de 100 segundos para no agobiar a Lavalink...`);
-    
-    // 3. Le ponemos una alarma para que conecte a la música cuando Lavalink ya esté 100% despierto
     setTimeout(() => {
         console.log(`🔌 Conectando a Lavalink ahora...`);
         shoukaku.addNode({
             name: 'Main Lavalink Node',
-            url: '127.0.0.1:2333', // Usamos 127.0.0.1 para evitar el error rojo de IPv6
+            url: '127.0.0.1:2333',
             auth: process.env.LAVALINK_PASSWORD || 'youshallnotpass',
         });
-    }, 100000); 
+    }, 10000); // Reducido a 10s para pruebas, puedes volver a 100s si tu server es lento
 });
 
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
-
-    // 1. SOLO UN DEFER AL PRINCIPIO
     await interaction.deferReply();
     
     const { commandName } = interaction;
+    const voiceChannel = interaction.member.voice.channel;
 
+    if (!voiceChannel) {
+        return interaction.editReply({ embeds: [createEmbed({ title: '❌ Error', description: '¡Debes estar en un canal de voz para usar música!', color: '#ff0000' })] });
+    }
+
+    const node = shoukaku.getIdealNode();
+    if (!node) {
+        return interaction.editReply({ embeds: [createEmbed({ title: '⏳ Cargando...', description: 'El servidor de música se está encendiendo. Inténtalo en unos segundos.', color: '#ffcc00' })] });
+    }
+
+    // COMANDO PLAY
     if (commandName === 'play') {
         const query = interaction.options.getString('cancion');
-        const voiceChannel = interaction.member.voice.channel;
-
-        if (!voiceChannel) {
-            return interaction.editReply('¡Debes estar en un canal de voz!');
-        }
-
-        const node = shoukaku.getIdealNode();
-        if (!node) {
-            // El bot responde esto si Lavalink aún está cargando sus plugins
-            return interaction.editReply('⏳ El servidor de música se está encendiendo (tarda aprox. 1 minuto). ¡Por favor, inténtalo de nuevo en unos segundos!');
-        }
-
-        // Si YouTube falla por IP en Render, intenta cambiar 'ytsearch:' por 'scsearch:' (SoundCloud)
-        const search = (query.startsWith('http')) ? query : `ytsearch:${query}`;
 
         try {
-            const result = await node.rest.resolve(search);
+            const result = await smartSearch(node, query);
+            
             if (!result || result.loadType === 'empty' || result.loadType === 'error') {
-                return interaction.editReply('No encontré resultados. Intenta con un link directo.');
+                return interaction.editReply({ embeds: [createEmbed({ title: '🔍 Sin resultados', description: 'No encontré la canción en ninguna plataforma. Intenta con un enlace directo.', color: '#ff0000' })] });
             }
 
-            // Ajuste de tracks para Lavalink v4
-            let tracksToAdd = [];
-            if (result.loadType === 'playlist') {
-                tracksToAdd = result.data.tracks;
-            } else if (result.loadType === 'search') {
-                tracksToAdd = [result.data[0]];
-            } else {
-                tracksToAdd = [result.data];
-            }
-            
+            let tracksToAdd = result.loadType === 'playlist' ? result.data.tracks : (result.loadType === 'search' ? [result.data[0]] : [result.data]);
             let player = shoukaku.players.get(interaction.guildId);
 
             if (!player) {
@@ -101,71 +116,110 @@ client.on('interactionCreate', async (interaction) => {
                 const firstTrack = serverQueue.tracks.shift();
 
                 await player.playTrack({ track: { encoded: firstTrack.encoded } });
-                interaction.editReply(`Reproduciendo: **${firstTrack.info.title}**`);
+                
+                interaction.editReply({ embeds: [createEmbed({ 
+                    title: '▶️ Reproduciendo ahora', 
+                    description: `**[${firstTrack.info.title}](${firstTrack.info.uri || ''})**\n👤 Autor: ${firstTrack.info.author}`,
+                    thumbnail: firstTrack.info.artworkUrl || null,
+                    color: '#00ffaa'
+                })] });
 
-                // Manejo de eventos del player (El piloto automático)
+                // Lógica sólida de salto automático y finalización de pista
                 player.on('end', async (data) => {
-                    // Chivato en la consola para saber exactamente por qué paró
-                    console.log('🎵 Canción terminada. Motivo:', data.reason); 
-                    
-                    // Pasamos a mayúsculas por si Lavalink v4 lo envía en minúsculas ('finished')
                     const reason = data.reason ? data.reason.toUpperCase() : '';
-
-                    // Si terminó de forma natural (FINISHED) o si alguien usó /skip (STOPPED)
                     if (['STOPPED', 'FINISHED'].includes(reason)) {
                         const q = queues.get(interaction.guildId);
                         
                         if (q && q.tracks.length > 0) {
-                            const nextTrack = q.tracks.shift(); // Saca la siguiente de la lista
-                            
+                            const nextTrack = q.tracks.shift(); 
                             try {
-                                // ¡EL MISMO TRUCO DEL FORMATO DE ANTES!
                                 await player.playTrack({ track: { encoded: nextTrack.encoded } });
-                                q.textChannel.send(`🎶 Reproduciendo ahora: **${nextTrack.info.title}**`);
+                                q.textChannel.send({ embeds: [createEmbed({ 
+                                    title: '🎶 Siguiente pista', 
+                                    description: `**[${nextTrack.info.title}](${nextTrack.info.uri || ''})**`,
+                                    thumbnail: nextTrack.info.artworkUrl || null
+                                })] });
                             } catch (err) {
-                                console.error('❌ Error al intentar poner la siguiente canción:', err);
+                                console.error('❌ Error reproduciendo la siguiente pista:', err);
                             }
                         } else {
-                            // Si la lista está vacía, el bot se despide y se va
-                            console.log('⏹️ Cola vacía, desconectando del canal...');
                             await shoukaku.leaveVoiceChannel(interaction.guildId);
                             queues.delete(interaction.guildId);
+                            q.textChannel.send({ embeds: [createEmbed({ title: '👋 Cola terminada', description: 'No hay más canciones en la lista. ¡Hasta pronto!' })] });
                         }
                     }
-                });
-
-                // Chivato por si el reproductor interno crashea
-                player.on('error', (error) => {
-                    console.error('❌ Error interno del reproductor:', error);
                 });
             } else {
                 const serverQueue = queues.get(interaction.guildId);
                 serverQueue.tracks.push(...tracksToAdd);
-                interaction.editReply(result.loadType === 'playlist' ? `Añadidas **${tracksToAdd.length}** canciones.` : `Añadida: **${tracksToAdd[0].info.title}**`);
+                
+                const titleText = result.loadType === 'playlist' ? `Playlist añadida (**${tracksToAdd.length}** canciones)` : `**${tracksToAdd[0].info.title}** añadida a la cola`;
+                interaction.editReply({ embeds: [createEmbed({ title: '📝 Añadido a la cola', description: titleText, color: '#00aaff' })] });
             }
         } catch (error) {
             console.error(error);
-            interaction.editReply('Error al intentar reproducir.');
+            interaction.editReply({ embeds: [createEmbed({ title: '❌ Error fatal', description: 'Ocurrió un problema al reproducir la música.', color: '#ff0000' })] });
         }
-
-    } else if (commandName === 'skip') {
+    } 
+    
+    // COMANDO SKIP
+    else if (commandName === 'skip') {
         const player = shoukaku.players.get(interaction.guildId);
-        if (!player) return interaction.editReply('No hay música sonando.');
-        await player.stopTrack();
-        interaction.editReply('Canción saltada.');
-
-    } else if (commandName === 'queue') {
+        if (!player) return interaction.editReply({ embeds: [createEmbed({ title: '❌ Error', description: 'No hay música sonando para saltar.', color: '#ff0000' })] });
+        
+        await player.stopTrack(); // Al detenerla, el evento 'end' se encarga de poner la siguiente
+        interaction.editReply({ embeds: [createEmbed({ title: '⏭️ Canción saltada', description: 'Pasando a la siguiente...' })] });
+    } 
+    
+    // COMANDO QUEUE
+    else if (commandName === 'queue') {
         const serverQueue = queues.get(interaction.guildId);
-        if (!serverQueue || serverQueue.tracks.length === 0) return interaction.editReply('La cola está vacía.');
-        const upNext = serverQueue.tracks.slice(0, 10).map((t, i) => `**${i + 1}.** ${t.info.title}`).join('\n');
-        interaction.editReply(`**Cola:**\n${upNext}`);
-
-    } else if (commandName === 'stop') {
+        if (!serverQueue || serverQueue.tracks.length === 0) {
+            return interaction.editReply({ embeds: [createEmbed({ title: '📋 Cola de reproducción', description: 'La cola está completamente vacía.' })] });
+        }
+        
+        const upNext = serverQueue.tracks.slice(0, 10).map((t, i) => `**${i + 1}.** [${t.info.title}](${t.info.uri || '#'})`).join('\n');
+        const footerText = serverQueue.tracks.length > 10 ? `\n\n*...y ${serverQueue.tracks.length - 10} canciones más.*` : '';
+        
+        interaction.editReply({ embeds: [createEmbed({ title: '📋 Cola de reproducción', description: `${upNext}${footerText}` })] });
+    } 
+    
+    // COMANDO STOP
+    else if (commandName === 'stop') {
         const player = shoukaku.players.get(interaction.guildId);
-        if (!player) return interaction.editReply('No hay música sonando.');
+        if (!player) return interaction.editReply({ embeds: [createEmbed({ title: '❌ Error', description: 'No hay música sonando.', color: '#ff0000' })] });
+        
         queues.delete(interaction.guildId);
         await shoukaku.leaveVoiceChannel(interaction.guildId);
-        interaction.editReply('Reproducción detenida.');
+        interaction.editReply({ embeds: [createEmbed({ title: '⏹️ Reproducción detenida', description: 'He vaciado la cola y me he desconectado.' })] });
+    }
+
+    // COMANDO PAUSE
+    else if (commandName === 'pause') {
+        const player = shoukaku.players.get(interaction.guildId);
+        if (!player) return interaction.editReply({ embeds: [createEmbed({ title: '❌ Error', description: 'No hay música sonando.', color: '#ff0000' })] });
+        
+        await player.setPaused(true);
+        interaction.editReply({ embeds: [createEmbed({ title: '⏸️ Pausado', description: 'La música ha sido pausada.' })] });
+    }
+
+    // COMANDO RESUME
+    else if (commandName === 'resume') {
+        const player = shoukaku.players.get(interaction.guildId);
+        if (!player) return interaction.editReply({ embeds: [createEmbed({ title: '❌ Error', description: 'No hay música sonando.', color: '#ff0000' })] });
+        
+        await player.setPaused(false);
+        interaction.editReply({ embeds: [createEmbed({ title: '▶️ Reanudado', description: 'La música sigue sonando.' })] });
+    }
+
+    // COMANDO VOLUME
+    else if (commandName === 'volume') {
+        const player = shoukaku.players.get(interaction.guildId);
+        if (!player) return interaction.editReply({ embeds: [createEmbed({ title: '❌ Error', description: 'No hay música sonando.', color: '#ff0000' })] });
+        
+        const volume = interaction.options.getInteger('nivel');
+        await player.setGlobalVolume(volume);
+        interaction.editReply({ embeds: [createEmbed({ title: '🔊 Volumen ajustado', description: `El volumen se ha establecido al **${volume}%**.` })] });
     }
 });
 
