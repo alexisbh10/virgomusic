@@ -44,7 +44,7 @@ async function smartSearch(node, query) {
 
     // Orden de prioridad: Spotify -> Apple Music -> YouTube -> SoundCloud
     // Añadimos 'amsearch:' para Apple Music
-    const searchPrefixes = ['spsearch:', 'amsearch:', 'ytsearch:', 'scsearch:'];
+    const searchPrefixes = ['spsearch:', 'amsearch:'];
     
     for (const prefix of searchPrefixes) {
         const result = await node.rest.resolve(`${prefix}${query}`);
